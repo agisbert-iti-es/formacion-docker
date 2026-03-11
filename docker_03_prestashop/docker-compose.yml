@@ -1,0 +1,51 @@
+services:
+  mysql:
+    container_name: some-mysql
+    image: mysql:5.7
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - prestashop_network
+
+  prestashop:
+    container_name: prestashop
+    image: prestashop/prestashop:latest
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    ports:
+      - 8080:80
+    environment:
+      DB_SERVER: some-mysql
+      DB_NAME: ${DB_NAME}
+      DB_USER: root
+      DB_PASS: ${DB_ROOT_PASSWORD}
+    networks:
+      - prestashop_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    networks:
+      - prestashop_network
+    profiles:
+      - debug
+
+networks:
+  prestashop_network:
+volumes:
+  db_data:

@@ -1,0 +1,52 @@
+services:
+ # herramienta de visualización 
+  grafana: 
+    image: "grafana/grafana:8.4.2"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning
+    networks:
+      - log_processing
+
+  # almacén de logs
+  loki:
+    image: "grafana/loki:2.4.2"
+    ports:
+      - "3100:3100"
+    networks:
+      - log_processing      
+
+  # procesador de logs
+  promtail:
+    image: "grafana/promtail:2.4.2"
+    volumes:
+      - logs_dir:/tmp/log
+      - ./promtail.yml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - log_processing    
+
+  # app que genera logs
+  flog:
+    image: "mingrammer/flog:0.4.3"
+    command: -f json -t log -o /tmp/log/json.log -d 200ms -w -l
+    volumes:
+      - logs_dir:/tmp/log
+    networks:
+      - app
+
+  contador-app:
+    build: .
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./data:/data
+      - logs_dir:/tmp/log
+
+networks:
+  log_processing:
+  app:
+
+volumes:
+  logs_dir:

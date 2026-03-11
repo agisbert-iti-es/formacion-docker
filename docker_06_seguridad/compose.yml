@@ -1,0 +1,36 @@
+version: '3.7'
+services:
+  nginx:
+    image: nginx:${NGINX_TAG}
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d/     
+      - ${WORKDIR}/trivy:/reports/trivy    
+      - ./web:/usr/share/nginx/html:ro     
+    depends_on:
+      trivy-infra:
+        condition: service_completed_successfully        
+      trivy-secrets:
+        condition: service_completed_successfully
+      trivy-vuln:
+        condition: service_completed_successfully
+  trivy-infra:
+    image: aquasec/trivy:${TRIVY_TAG}
+    volumes:
+      - ${SRC_PATH}:/path
+      - ${WORKDIR}/trivy:/results      
+    command: fs --scanners misconfig path --format sarif -o results/report-infra.sarif
+  trivy-secrets:    
+    image: aquasec/trivy:${TRIVY_TAG}
+    volumes:
+      - ${SRC_PATH}:/path
+      - ${WORKDIR}/trivy:/results      
+    command: fs --scanners secret path --format sarif -o results/report-secrets.sarif
+  trivy-vuln:
+    image: aquasec/trivy:${TRIVY_TAG}
+    volumes:
+      - ${SRC_PATH}:/path
+      - ${WORKDIR}/trivy:/results      
+    command: fs --scanners vuln path --format sarif -o results/report-vuln.sarif
+
